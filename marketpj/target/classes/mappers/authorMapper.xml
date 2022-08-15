@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="authorMapper">
+   
+ 	<!-- 작가 등록 -->
+      <insert id="authorEnroll">
+          INSERT INTO BOOK_AUTHOR ( AUTHORNAME, NATIONID, AUTHORINTRO ) 
+          VALUES ( #{authorName}, #{nationId}, #{authorIntro} )
+      </insert>
+
+	<!-- 작가 목록 -->
+	<select id="authorGetList" parameterType="kr.co.vo.Criteria" resultType="kr.co.vo.AuthorVO">
+	   SELECT * FROM 
+		   (SELECT ROWNUM AS rNUM,A.* FROM 
+		   	(SELECT * FROM BOOK_AUTHOR 
+		   		WHERE 1=1 <include refid="search"></include> 
+		   		ORDER BY AUTHORID DESC)A)
+		   WHERE rNUM BETWEEN ((#{pageNum}-1)*#{amount})+1 AND #{pageNum}*#{amount}
+	</select>
+
+	<sql id="search">
+		<if test="keyword != null"> 
+		AND AUTHORNAME LIKE '%'||#{keyword}||'%'
+		</if>
+    </sql>
+    
+    	<!-- 전체 작가 숫자 -->
+	<select id="authorGetTotal" parameterType="kr.co.vo.Criteria" resultType="int">
+	  SELECT COUNT(*) FROM BOOK_AUTHOR
+	  <if test='keyword != null'>
+	  	WHERE AUTHORNAME LIKE '%' || #{keyword} || '%'
+	  </if>
+	</select>
+	
+	<!-- 작가 상세 페이지 -->
+	<select id="authorGetDetail" parameterType="int" resultType="kr.co.vo.AuthorVO">
+		SELECT * FROM BOOK_AUTHOR
+			WHERE AUTHORID=#{authorId}
+	</select>
+	
+	<!-- 작가 정보 수정 -->
+  	<update id="authorModify">
+  	
+  		update BOOK_author set authorName=#{authorName}, nationId=#{nationId}, authorIntro=#{authorIntro}, updatedate=sysdate where authorId = #{authorId}
+  	
+  	</update>
+  	
+  	<!-- 작가 정보 삭제 -->
+  	<delete id="authorDelete">
+  		DELETE FROM BOOK_AUTHOR WHERE AUTHORID = #{authorId}
+  	</delete>
+   
+   
+</mapper>

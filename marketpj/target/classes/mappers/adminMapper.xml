@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="adminMapper">
+   
+ 	<!-- 책 등록 -->
+  	<insert id="bookEnroll">
+  	
+  		<selectKey resultType="int" keyProperty="bookId" order="AFTER">
+  		
+  			SELECT ISEQ$$_76077.CURRVAL FROM DUAL
+  		
+  		</selectKey>
+  		
+  		INSERT INTO BOOK(bookName, authorId, publeYear, publisher, cateCode, bookPrice, bookStock, bookDiscount, bookIntro, bookContents)
+		VALUES(#{bookName},#{authorId}, #{publeYear},#{publisher},#{cateCode},#{bookPrice},#{bookStock},#{bookDiscount},#{bookIntro},#{bookContents})
+  	</insert>
+
+	<!-- 카테고리 리스트 -->
+	<select id="cateList" resultType="kr.co.vo.CateVO">
+		SELECT * FROM BOOK_BCATE ORDER BY CATECODE
+	</select>
+	
+		<!-- 상품 목록 -->
+	<select id="goodsGetList" parameterType="kr.co.vo.Criteria" resultType="kr.co.vo.BookVO">
+	   SELECT * FROM 
+	   (SELECT ROWNUM AS rNUM, M.* FROM 
+	    (SELECT A.BOOKID, A.BOOKNAME, A.BOOKPRICE, A.BOOKSTOCK, A.REGDATE, B.AUTHORNAME, C.CATENAME FROM BOOK A, BOOK_AUTHOR B, BOOK_BCATE C
+		 WHERE A.AUTHORID=b.authorid AND A.CATECODE = C.CATECODE ORDER BY BOOKID DESC)M 
+		WHERE 1=1 <include refid="search"></include> )
+	   WHERE rNUM BETWEEN ((#{pageNum}-1)*#{amount})+1 AND #{pageNum}*#{amount}
+	   
+	</select>
+
+	<sql id="search">
+		<if test="keyword != null"> 
+		AND BOOKNAME LIKE '%'||#{keyword}||'%'
+		</if>
+    </sql>
+    
+    <!-- 이미지 등록 -->
+	<insert id="imageEnroll">
+	
+		INSERT INTO BOOK_IMAGE(bookId, fileName, uploadPath, uuid) values (#{bookId}, #{fileName}, #{uploadPath}, #{uuid})
+	
+	</insert>
+
+
+	<!-- 상품 총 갯수 -->
+	<select id="goodsGetTotal" resultType="int">
+		select count(*) from book
+		<if test="keyword != null">
+		where bookName like '%' || #{keyword} || '%'
+		</if>
+	</select>
+	
+	<!-- 상품 상세 조회 페이지 -->
+	<select id="goodsGetDetail" resultType="kr.co.vo.BookVO">
+	
+		select bookId, bookName, (select authorName from book_author where authorId =book.authorId) authorName, 
+			authorId, publeYear, publisher, cateCode, bookPrice, bookStock, bookDiscount, bookIntro, bookContents, regDate, updateDate 
+		from book where bookId = #{bookId}
+	
+	</select>
+	
+	<!-- 상품 정보 수정 -->
+  	<update id="goodsModify">
+  	
+  		update book set bookName = #{bookName}, authorId = #{authorId}, publeYear = #{publeYear}, publisher = #{publisher}, cateCode = ${cateCode}, 
+		bookPrice = #{bookPrice}, bookStock = #{bookStock}, bookDiscount = #{bookDiscount}, bookIntro = #{bookIntro}, bookContents = #{bookContents}, updateDate = sysdate
+		where bookId = ${bookId}
+  	
+  	</update>
+  	
+  	
+  	<!-- 상품 정보 삭제 -->
+	<delete id="goodsDelete">
+	
+		DELETE FROM BOOK WHERE BOOKID = #{bookId}
+	
+	</delete>
+	
+	<!-- 지정 상품 이미지 전체 삭제 --> 
+	<delete id="deleteImageAll">
+	
+		delete FROM book_image where bookId = #{bookId}
+	
+	</delete>
+	
+	<!-- 어제자 날자 이미지 리스트 -->
+	<select id="checkFileList" resultType="kr.co.vo.AttachImageVO">
+	
+		select * from book_image where uploadpath = to_char(sysdate -1, 'yyyy\mm\dd')	
+	
+	</select>
+	
+	<!-- 주문 리스트 -->
+	<select id="getOrderList" resultType="kr.co.vo.OrderDTO">
+		<![CDATA[
+		select * 
+		from(
+		    select rownum rn, orderId, memberId, orderstate, orderdate
+		    from book_order
+		    where rownum <= #{pageNum} * #{amount} 
+		]]>    
+		<if test="keyword != null">
+			and memberId like '%'||#{keyword}||'%'
+		</if>
+		<![CDATA[
+		    
+		    order by orderdate desc
+		    )
+		where rn > (#{pageNum} -1) * #{amount}
+		]]>
+	</select>	
+	
+	<!-- 상품 총 개수 -->
+	<select id="getOrderTotal" resultType="int">
+	
+		select count(*) from book_order
+		
+	    <if test="keyword != null">
+	    	where memberId like '%'||#{keyword}||'%'
+	    </if>
+	
+	</select>
+    
+    	
+   
+   
+</mapper>
